@@ -60,3 +60,24 @@ at the start of our machine code. In this way, our program knows where to go
 to after the retq in our machine code, and we will not cause a seg fault. 
 
 Level Four:
+Just like what we have done in level three, but this time, we need to consider
+that the %rbp changes everytime when the getbufn is called again, meaning that 
+our buffer start at a new address each time. So we cannot simply overwrite the 
+return address with the address of the start of our 1st buffer. Therefore, we 
+can make use of no ops to solve this problem. I locate my machine code at the
+half of my buffer, with the first half filled with no ops. Then, by using gdb,
+I recoreded down the five %rbp values, and use them to find the 5 addresses 
+where each of my buffer start. I then pick an address that is larger than all
+five of them but no larger than the address I place my machine code, 
+and set it as the return address I overwrites, since this will avoid my code 
+from jumping to somewhere out of my buffer and cause a seg fault. Then I 
+discover that my stack will be corrupted each time, which is caused by the way
+I overwrite the stored old %rbp value. With each turn the %rbp value after
+stepping into my exploit will always be my input value, but I want it to be
+the old %rbp originally stored there. Moreover, the old %rbp is different each
+time, which tells me that I need to make this change in my exploit code. After
+observing register values, I find that the old %rbp should be 0x20 larger than 
+the %rsp value the moment it enters my exploit code. Thus, at the first line
+of my exploit code, I added lea 0x20(%rsp), %rbp to change %rbp to store the
+the address of %rsp plus 0x20, which is what we want: the old %rbp. This way, 
+we will not corrupt the stack. 
